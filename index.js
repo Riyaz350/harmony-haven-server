@@ -22,7 +22,7 @@ app.use(cookieParser())
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.gx7mkcg.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -37,6 +37,7 @@ const client = new MongoClient(uri, {
 const apartments = client.db("apartmentsDB").collection("apartments");
 const users = client.db("apartmentsDB").collection("users");
 const coupons = client.db("apartmentsDB").collection("coupons");
+const agreements = client.db("apartmentsDB").collection("agreements");
 
 
 async function run() {
@@ -52,7 +53,6 @@ async function run() {
     }
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded)=>{
         if(err){
-            console.log(err)
             return res.status(401).send({message: 'unauthorized'})
         }
         // console.log('value of token is', decoded)
@@ -72,6 +72,26 @@ const verifyAdmin = async(req, res, next)=>{
     next()
   }
 
+  //   JWT TOKENS, COOKIES API
+
+app.post('/jwt', async (req, res) => {
+    const user = req.body;
+    const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+    res.cookie('token', token, {
+        httpOnly : false ,
+        secure : true,
+        sameSite:'none'
+    })
+    .send({success:true});
+  })
+
+  app.post('/logout', async (req, res) => {
+    const user = req.body;
+    res
+    .clearCookie('token', { maxAge: 0, sameSite: "none", secure: true})
+    .send('logged out')
+})
+
 
 //   USER API
 
@@ -82,7 +102,6 @@ const verifyAdmin = async(req, res, next)=>{
   
   app.post(`/users`, async(req, res)=>{
     const user = req.body
-    console.log(user)
     const query = {email : req.body.email} 
     const find = await users.findOne(query)
     if(find){
@@ -100,6 +119,35 @@ app.get('/apartments', async(req, res)=>{
   })
 
 
+//   APARTMENT BOOKING API
+
+app.post('/agreements',verifyToken, async(req, res)=>{
+    const agreement = req.body
+    const query = {status : 'pending'} 
+    const find = await apartments.findOne(query)
+    if(find){
+      return res.send  ({message: 'Already booked/ Pending booking', insertedId : null})
+    }
+    const result = await agreements.insertOne(agreement)
+    res.send(result)
+})
+
+app.patch('/apartments/:_id', verifyToken, async (req, res) => {
+
+    const updatedApartment = req.body;
+    const id = req.params._id;
+    const filter = { _id: new ObjectId(id) };
+    console.log(id, updatedApartment.status)
+    const updateDoc = {
+        $set: {
+            status: updatedApartment.status,
+        },
+    };
+    const result = await apartments.updateOne(filter, updateDoc);
+    res.send(result);
+})
+
+
 //   Coupons API
 
 app.get('/coupons', async(req, res)=>{
@@ -108,23 +156,7 @@ app.get('/coupons', async(req, res)=>{
   })
 
 
-//   JWT TOKENS, COOKIES API
 
-app.post('/jwt', async (req, res) => {
-    const user = req.body;
-    const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
-    res
-    .cookie('token', token, {httpOnly : false , secure : true, sameSite:'none'})
-    .send({ token });
-  })
-
-  app.post('/logout', async (req, res) => {
-    const user = req.body;
-    console.log('logging out', user);
-    res
-    .clearCookie('token', { maxAge: 0, sameSite: "none", secure: true})
-    .send('logged out')
-})
 
 
 
