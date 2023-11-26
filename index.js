@@ -62,7 +62,7 @@ async function run() {
 }
 
 const verifyAdmin = async(req, res, next)=>{
-    const email = req.decoded.email
+    const email = req.user?.email
     const query = {email: email}
     const user = await users.findOne(query)
     const isAdmin = user?.role === 'admin'
@@ -95,7 +95,7 @@ app.post('/jwt', async (req, res) => {
 
 //   USER API
 
-  app.get('/users',verifyToken, async(req, res)=>{
+  app.get('/users',verifyToken,verifyAdmin, async(req, res)=>{
     const result = await users.find().toArray()
     res.send(result)
   })
@@ -121,14 +121,22 @@ app.post('/jwt', async (req, res) => {
 //   APARTMENTS API
 
 app.get('/apartments', async(req, res)=>{
-    const result = await apartments.find().toArray()
+    const query = parseInt(req.query?.page)
+    const size = parseInt(req.query?.size)
+    console.log(query, size)
+    const result = await apartments.find().skip(query * size).limit(size).toArray()
     res.send(result)
+  })
+
+  app.get('/apartmentsCount', async (req, res) => {
+    const count = await apartments.estimatedDocumentCount();
+    res.send( {count });
   })
 
 
 //   APARTMENT BOOKING API
 
-app.get('/agreements',verifyToken, async(req, res)=>{
+app.get('/agreements',verifyToken,verifyAdmin, async(req, res)=>{
   let query = {}
   if(req?.query){
     query= {status: req.query?.status}
@@ -139,16 +147,11 @@ app.get('/agreements',verifyToken, async(req, res)=>{
 
 app.post('/agreements',verifyToken, async(req, res)=>{
     const agreement = req.body
-    // const query = {status : 'pending'} 
-    // const find = await apartments.findOne(query)
-    // if(find){
-    //   return res.send  ({message: 'Already booked/ Pending booking', insertedId : null})
-    // }
     const result = await agreements.insertOne(agreement)
     res.send(result)
 })
 
-app.patch('/agreements/:_id', verifyToken, async (req, res) => {
+app.patch('/agreements/:_id', verifyToken, verifyAdmin, async (req, res) => {
 
   const updatedApartment = req.body;
   const id = req.params._id;
