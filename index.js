@@ -38,6 +38,7 @@ const apartments = client.db("apartmentsDB").collection("apartments");
 const users = client.db("apartmentsDB").collection("users");
 const coupons = client.db("apartmentsDB").collection("coupons");
 const agreements = client.db("apartmentsDB").collection("agreements");
+const announcements = client.db("apartmentsDB").collection("announcements");
 
 
 async function run() {
@@ -184,6 +185,19 @@ app.patch('/apartments/:_id', verifyToken, async (req, res) => {
     };
     const result = await apartments.updateOne(filter, updateDoc);
     res.send(result);
+})
+
+// ANNOUNCEMENT API
+
+app.get('/announcements', async(req, res)=>{
+  const result = await announcements.find().toArray()
+  res.send(result)
+})
+
+app.post('/announcements', async(req, res)=>{
+  const announcement = req.body;
+  const result = await announcements.insertOne(announcement)
+  res.send(result)
 })
 
 
