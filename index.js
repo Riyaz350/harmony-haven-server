@@ -95,8 +95,15 @@ app.post('/jwt', async (req, res) => {
 
 //   USER API
 
-  app.get('/users', async(req, res)=>{
+  app.get('/users',verifyToken, async(req, res)=>{
     const result = await users.find().toArray()
+    res.send(result)
+  })
+
+  app.get('/users/:email', async(req, res)=>{
+    const userEmail = req.params?.email
+    const query = {email: userEmail}
+    const result = await users.findOne(query)
     res.send(result)
   })
   
@@ -121,15 +128,45 @@ app.get('/apartments', async(req, res)=>{
 
 //   APARTMENT BOOKING API
 
+app.get('/agreements',verifyToken, async(req, res)=>{
+  let query = {}
+  if(req?.query){
+    query= {status: req.query?.status}
+  }
+  const result = await agreements.find(query).toArray()
+  res.send(result)
+})
+
 app.post('/agreements',verifyToken, async(req, res)=>{
     const agreement = req.body
-    const query = {status : 'pending'} 
-    const find = await apartments.findOne(query)
-    if(find){
-      return res.send  ({message: 'Already booked/ Pending booking', insertedId : null})
-    }
+    // const query = {status : 'pending'} 
+    // const find = await apartments.findOne(query)
+    // if(find){
+    //   return res.send  ({message: 'Already booked/ Pending booking', insertedId : null})
+    // }
     const result = await agreements.insertOne(agreement)
     res.send(result)
+})
+
+app.patch('/agreements/:_id', verifyToken, async (req, res) => {
+
+  const updatedApartment = req.body;
+  const id = req.params._id;
+  const filter = { _id: new ObjectId(id) };
+  const updateDoc = {
+      $set: {
+          status: updatedApartment.status,
+      },
+  };
+  const result = await agreements.updateOne(filter, updateDoc);
+  res.send(result);
+})
+
+app.delete('/agreements/:_id', verifyToken, async(req, res)=>{
+  const id = req.params._id
+  const query = {_id: new ObjectId(id)}
+  const result = await agreements.deleteOne(query);
+  res.send(result)
 })
 
 app.patch('/apartments/:_id', verifyToken, async (req, res) => {
@@ -137,7 +174,6 @@ app.patch('/apartments/:_id', verifyToken, async (req, res) => {
     const updatedApartment = req.body;
     const id = req.params._id;
     const filter = { _id: new ObjectId(id) };
-    console.log(id, updatedApartment.status)
     const updateDoc = {
         $set: {
             status: updatedApartment.status,
@@ -150,7 +186,7 @@ app.patch('/apartments/:_id', verifyToken, async (req, res) => {
 
 //   Coupons API
 
-app.get('/coupons', async(req, res)=>{
+app.get('/coupons', verifyToken, async(req, res)=>{
     const result = await coupons.find().toArray()
     res.send(result)
   })
