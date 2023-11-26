@@ -124,7 +124,6 @@ app.post('/jwt', async (req, res) => {
 app.get('/apartments', async(req, res)=>{
     const query = parseInt(req.query?.page)
     const size = parseInt(req.query?.size)
-    console.log(query, size)
     const result = await apartments.find().skip(query * size).limit(size).toArray()
     res.send(result)
   })
