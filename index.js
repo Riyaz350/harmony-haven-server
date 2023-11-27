@@ -119,6 +119,20 @@ app.post('/jwt', async (req, res) => {
     res.send(result)
   })
 
+  app.patch('/users/:_id', verifyToken, verifyAdmin, async (req, res) => {
+
+    const updatedUser = req.body;
+    const id = req.params._id;
+    const filter = { _id: new ObjectId(id) };
+    const updateDoc = {
+        $set: {
+            role: updatedUser.role,
+        },
+    };
+    const result = await users.updateOne(filter, updateDoc);
+    res.send(result);
+  })
+
 //   APARTMENTS API
 
 app.get('/apartments', async(req, res)=>{
