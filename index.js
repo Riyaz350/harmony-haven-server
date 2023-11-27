@@ -124,14 +124,11 @@ app.post('/jwt', async (req, res) => {
     const updatedUser = req.body;
     const userEmail = req.params.email;
     const filter = { email: userEmail };
-    console.log(req.body[0], req.body[1])
     const updateDoc = {
         $set: {
-            role: req.body[0].role,
-        },
-        $push:{
-          owned: req.body[1].owned
+            role: req.body.role,
         }
+
     };
     const result = await users.updateOne(filter, updateDoc);
     res.send('lol');
@@ -149,6 +146,21 @@ app.post('/jwt', async (req, res) => {
     const result = await users.updateOne(filter, updateDoc);
     res.send(result);
   })
+
+  app.patch('/owner/:email', verifyToken, verifyAdmin, async (req, res) => {
+
+    const updatedUser = req.body;
+    const userEmail = req.params.email;
+    const filter = { email: userEmail };
+    const updateDoc = {
+        $push:{
+          owned: req.body.owned
+        }
+    };
+    const result = await users.updateOne(filter, updateDoc);
+    res.send('lol');
+  })
+
 
 //   APARTMENTS API
 
