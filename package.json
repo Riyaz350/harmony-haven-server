@@ -20,6 +20,7 @@
     "gitignore": "^0.7.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.3.0",
-    "react-cookie": "^6.1.1"
+    "react-cookie": "^6.1.1",
+    "stripe": "^14.5.0"
   }
 }
