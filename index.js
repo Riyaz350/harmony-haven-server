@@ -131,7 +131,7 @@ app.post('/jwt', async (req, res) => {
 
     };
     const result = await users.updateOne(filter, updateDoc);
-    res.send('lol');
+    res.send('result');
   })
   app.patch('/user/:email', verifyToken, verifyAdmin, async (req, res) => {
 
@@ -153,7 +153,7 @@ app.post('/jwt', async (req, res) => {
     const userEmail = req.params.email;
     const filter = { email: userEmail };
     const updateDoc = {
-        $push:{
+        $set:{
           owned: req.body.owned
         }
     };
@@ -170,11 +170,9 @@ app.get('/apartments', async(req, res)=>{
     const result = await apartments.find().skip(query * size).limit(size).toArray()
     res.send(result)
   })
-app.patch('/apartmentos', async(req, res)=>{
-    const query = req.query.ids.split(',').map(id => new ObjectId(id))
-
-    
-    const updateResult = await apartments.updateMany({ _id: { $in: query } },{ $set: { status: 'notBooked' } } );  
+  app.patch('/apartmentsData', async(req, res)=>{
+    const query = {_id : new ObjectId(req.query.id)}
+    const updateResult = await apartments.updateOne(query,{ $set: { status: 'notBooked' } } );  
     res.send(updateResult)
   })
 
