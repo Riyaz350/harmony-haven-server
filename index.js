@@ -150,11 +150,14 @@ app.post('/jwt', async (req, res) => {
   app.patch('/owner/:email', verifyToken, verifyAdmin, async (req, res) => {
 
     const updatedUser = req.body;
+    console.log(updatedUser)
     const userEmail = req.params.email;
     const filter = { email: userEmail };
     const updateDoc = {
         $set:{
-          owned: req.body.owned
+          owned: req.body.owned,
+          acceptedAgreement:updatedUser.acceptedAgreement._id
+
         }
     };
     const result = await users.updateOne(filter, updateDoc);
@@ -207,6 +210,7 @@ app.patch('/agreements/:_id', verifyToken, verifyAdmin, async (req, res) => {
   const updateDoc = {
       $set: {
           status: updatedApartment.status,
+          acceptedTime: updatedApartment.submissionTime
       },
   };
   const result = await agreements.updateOne(filter, updateDoc);
@@ -232,6 +236,15 @@ app.patch('/apartments/:_id', verifyToken, async (req, res) => {
     };
     const result = await apartments.updateOne(filter, updateDoc);
     res.send(result);
+})
+
+
+app.get('/agreements/:id',verifyToken, async(req, res)=>{
+  const aggId = req.params?.id
+  const query = {_id:  new ObjectId(aggId) }
+  const result = await agreements.findOne(query)
+  console.log(aggId)
+  res.send(result)
 })
 
 // ANNOUNCEMENT API
