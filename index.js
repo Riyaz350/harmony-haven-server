@@ -48,23 +48,50 @@ async function run() {
 
     // HANDMADE MIDDLEWARES
 
-    const verifyToken = async(req, res, next)=>{
-    const token = req.cookies?.token;
-    if(!token){
-        return res.status(401).send({message: 'not Authorized'})
-    }
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded)=>{
+    const verifyToken = (req, res, next)=>{
+      if(!req.headers.authorization){
+        return res.status(401).send({message: 'FORBIDDEN ACCESS'})
+      }
+      const token = req.headers.authorization.split(' ')[1]
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) =>{
         if(err){
-            return res.status(401).send({message: 'unauthorized'})
-        }
-        // console.log('value of token is', decoded)
-        req.user = decoded
+          return res.status(401).send({message: 'ACCESS DENIED'})
+        } 
+        req.decoded = decoded
         next()
-    })
-}
+      })
+    }
 
-const verifyAdmin = async(req, res, next)=>{
-    const email = req.user?.email
+
+
+//     const verifyToken = async(req, res, next)=>{
+//     const token = req.cookies?.token;
+//     if(!token){
+//         return res.status(401).send({message: 'not Authorized'})
+//     }
+//     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded)=>{
+//         if(err){
+//             return res.status(401).send({message: 'unauthorized'})
+//         }
+//         // console.log('value of token is', decoded)
+//         req.user = decoded
+//         next()
+//     })
+// }
+
+// const verifyAdmin = async(req, res, next)=>{
+//     const email = req.user?.email
+//     const query = {email: email}
+//     const user = await users.findOne(query)
+//     const isAdmin = user?.role === 'admin'
+//     if(!isAdmin){
+//       return res.status(403).send({message: 'forbidden access'})
+//     }
+//     next()
+//   }
+
+  const verifyAdmin = async(req, res, next)=>{
+    const email = req.decoded.email
     const query = {email: email}
     const user = await users.findOne(query)
     const isAdmin = user?.role === 'admin'
@@ -84,7 +111,7 @@ app.post('/jwt', async (req, res) => {
         secure : true,
         sameSite:'none'
     })
-    .send({success:true});
+    .send({token});
   })
 
   app.post('/logout', async (req, res) => {
