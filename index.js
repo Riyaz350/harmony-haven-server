@@ -39,6 +39,7 @@ const users = client.db("apartmentsDB").collection("users");
 const coupons = client.db("apartmentsDB").collection("coupons");
 const agreements = client.db("apartmentsDB").collection("agreements");
 const announcements = client.db("apartmentsDB").collection("announcements");
+const paymentCollection = client.db("apartmentsDB").collection("payment");
 
 
 async function run() {
@@ -91,6 +92,43 @@ app.post('/jwt', async (req, res) => {
     res
     .clearCookie('token', { maxAge: 0, sameSite: "none", secure: true})
     .send('logged out')
+})
+
+// PAYMENT
+
+app.post('/create-payment-intent', async (req, res) => {
+  const { price } = req.body;
+  const amount = parseInt(price * 100);
+  console.log(amount, 'amount inside the intent')
+
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: amount,
+    currency: 'usd',
+    payment_method_types: ['card']
+  });
+
+  res.send({
+    clientSecret: paymentIntent.client_secret
+  })
+});
+
+app.get('/payments/:email',verifyToken, async(req, res)=>{
+  const query = {email: req.params?.email}
+  console.log(req.decoded?.email, 'decoded')
+  const emaill = req.params?.email
+  if(emaill !== req.decoded.email){
+    return res.status(403).send({message: 'Unauthorizedddd'})
+  }
+  const result = await paymentCollection.find(query).toArray()
+  res.send(result)
+
+})
+
+app.post('/payments', async (req, res) => {
+  const payment = req.body;
+  const paymentResult = await paymentCollection.insertOne(payment);
+
+  res.send({ paymentResult });
 })
 
 
@@ -243,7 +281,6 @@ app.get('/agreements/:id',verifyToken, async(req, res)=>{
   const aggId = req.params?.id
   const query = {_id:  new ObjectId(aggId) }
   const result = await agreements.findOne(query)
-  console.log(aggId)
   res.send(result)
 })
 
