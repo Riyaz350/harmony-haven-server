@@ -126,7 +126,6 @@ app.post('/jwt', async (req, res) => {
 app.post('/create-payment-intent', async (req, res) => {
   const { price } = req.body;
   const amount = parseInt(price * 100);
-  console.log(amount, 'amount inside the intent')
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: amount,
@@ -331,6 +330,26 @@ app.get('/coupons', verifyToken, async(req, res)=>{
     const result = await coupons.find().toArray()
     res.send(result)
   })
+app.post('/coupons', verifyToken, verifyAdmin, async(req, res)=>{
+    const coupon = req.body
+    const result = await coupons.insertOne(coupon)
+    res.send(result)
+  })
+
+  app.patch('/coupons/:_id', verifyToken, verifyAdmin, async (req, res) => {
+
+    const updatedCoupon = req.body;
+    console.log(updatedCoupon)
+    const id = req.params._id;
+    const filter = { _id: new ObjectId(id) };
+    const updateDoc = {
+        $set: {
+            available: updatedCoupon.data,
+        },
+    };
+    const result = await coupons.updateOne(filter, updateDoc);
+    res.send(result);
+})
 
 
 
