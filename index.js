@@ -1,22 +1,23 @@
 const express = require('express')
-const app = express()
-const cors = require('cors')
-const cookieParser = require('cookie-parser')
-const jwt = require('jsonwebtoken');
 require('dotenv').config();
+const cors = require('cors')
+const jwt = require('jsonwebtoken');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+const app = express()
 const port = process.env.PORT || 5000
 
 //middleware
 app.use(cors({
 
-    origin:[ 'http://localhost:5173',],
+    origin:[ 'http://localhost:5173',
+            'http://localhost:5174',
+            'https://656756e73708ed2c2e4a35fd--strong-kitsune-cd3ea3.netlify.app'
+           ],
     credentials:true
 
 }
 ))
 app.use(express.json())
-app.use(cookieParser())
 
 
 
@@ -34,17 +35,25 @@ const client = new MongoClient(uri, {
   }
 });
 
-const apartments = client.db("apartmentsDB").collection("apartments");
-const users = client.db("apartmentsDB").collection("users");
-const coupons = client.db("apartmentsDB").collection("coupons");
-const agreements = client.db("apartmentsDB").collection("agreements");
-const announcements = client.db("apartmentsDB").collection("announcements");
-const paymentCollection = client.db("apartmentsDB").collection("payment");
 
 
 async function run() {
   try {
 
+    const apartments = client.db("apartmentsDB").collection("apartments");
+    const users = client.db("apartmentsDB").collection("users");
+    const coupons = client.db("apartmentsDB").collection("coupons");
+    const agreements = client.db("apartmentsDB").collection("agreements");
+    const announcements = client.db("apartmentsDB").collection("announcements");
+    const paymentCollection = client.db("apartmentsDB").collection("payment");
+
+  //   JWT TOKENS, COOKIES API
+
+  app.post('/jwt', async (req, res) => {
+    const user = req.body;
+    const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+    res.send({token});
+  })
 
     // HANDMADE MIDDLEWARES
 
@@ -62,34 +71,6 @@ async function run() {
       })
     }
 
-
-
-//     const verifyToken = async(req, res, next)=>{
-//     const token = req.cookies?.token;
-//     if(!token){
-//         return res.status(401).send({message: 'not Authorized'})
-//     }
-//     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded)=>{
-//         if(err){
-//             return res.status(401).send({message: 'unauthorized'})
-//         }
-//         // console.log('value of token is', decoded)
-//         req.user = decoded
-//         next()
-//     })
-// }
-
-// const verifyAdmin = async(req, res, next)=>{
-//     const email = req.user?.email
-//     const query = {email: email}
-//     const user = await users.findOne(query)
-//     const isAdmin = user?.role === 'admin'
-//     if(!isAdmin){
-//       return res.status(403).send({message: 'forbidden access'})
-//     }
-//     next()
-//   }
-
   const verifyAdmin = async(req, res, next)=>{
     const email = req.decoded.email
     const query = {email: email}
@@ -101,25 +82,7 @@ async function run() {
     next()
   }
 
-  //   JWT TOKENS, COOKIES API
 
-app.post('/jwt', async (req, res) => {
-    const user = req.body;
-    const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
-    res.cookie('token', token, {
-        httpOnly : false ,
-        secure : true,
-        sameSite:'none'
-    })
-    .send({token});
-  })
-
-  app.post('/logout', async (req, res) => {
-    const user = req.body;
-    res
-    .clearCookie('token', { maxAge: 0, sameSite: "none", secure: true})
-    .send('logged out')
-})
 
 // PAYMENT
 
@@ -195,7 +158,7 @@ app.post('/payments', async (req, res) => {
 
     };
     const result = await users.updateOne(filter, updateDoc);
-    res.send('result');
+    res.send(result);
   })
   app.patch('/user/:email', verifyToken, verifyAdmin, async (req, res) => {
 
@@ -205,6 +168,7 @@ app.post('/payments', async (req, res) => {
     const updateDoc = {
         $set: {
             owned: updatedUser.owned,
+            acceptedAgreement:updatedUser.acceptedAgreement
         },
     };
     const result = await users.updateOne(filter, updateDoc);
@@ -225,7 +189,7 @@ app.post('/payments', async (req, res) => {
         }
     };
     const result = await users.updateOne(filter, updateDoc);
-    res.send('lol');
+    res.send(result);
   })
 
 
@@ -326,7 +290,7 @@ app.post('/announcements', async(req, res)=>{
 
 //   Coupons API
 
-app.get('/coupons', verifyToken, async(req, res)=>{
+app.get('/coupons',  async(req, res)=>{
     const result = await coupons.find().toArray()
     res.send(result)
   })
@@ -363,6 +327,11 @@ app.post('/coupons', verifyToken, verifyAdmin, async(req, res)=>{
   }
 }
 run().catch(console.dir);
+
+app.get('/', (req, res) => {
+  res.send('boss is sitting')
+})
+
 
 app.listen(port, ()=>{
     console.log(`Landlord is sitting on port ${port} `)
