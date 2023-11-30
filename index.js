@@ -290,7 +290,7 @@ app.post('/announcements', async(req, res)=>{
 
 //   Coupons API
 
-app.get('/coupons',  async(req, res)=>{
+app.get('/coupons', async(req, res)=>{
     const result = await coupons.find().toArray()
     res.send(result)
   })
